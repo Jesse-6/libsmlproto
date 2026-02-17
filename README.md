@@ -40,6 +40,29 @@ extern bool SMLP_Cleanup(bool will_reload);
 *I hope my 'C' language statements above doesn't hurt too much your eyes, like my english already does.*
 *I don't program actively in C, so I only guess how it should be written. Sorry...*
 
+The library works by initalizing and indexing strings off a language file, which shall have its name as follows:
+```
+  # relative path and filename:
+  path/[prefix][locale][suffix]
+  
+  # absolute path and filename:
+  /folder1/folder2/[prefix][locale][suffix]
+  
+  # filename at current application directory:
+  [prefix][locale][suffix]
+```
+\[prefix\] and \[suffix\] are optional, also \[path\] is optional, and \[locale\] will be host's current locale, or any override made to the 'LANG=' environment variable.
+
+Example:
+```
+    # For a host located in Brazil:
+    # Path is 'lang'
+    # Prefix is 'vp_'
+    # Locale is 'pt_BR (or pt_BR.UTF-8)'
+    # Suffix is '.txt'
+    lang/vp_pt_BR.txt # <- resulting filename
+```
+
 I think the names and parameter names are quite self explainable, but if you think you need more details, for now, I have documented every function in (assembly) detail at the source. Also the example application has a good and well commented example of production usage. I'll soon do a proper documentation off source, one day. Maybe... '-'
 (Does this simple thing really need one?)
 
@@ -48,7 +71,7 @@ Just copy the provided binary to your system's library path, usually `/usr/lib/`
 
 To compile it from source, as well as the bundled example, you will need:
 
- - [fasm2](https://github.com/tgrysztar/fasm2 "flat assembler 2) assembler;
+ - [fasm2](https://github.com/tgrysztar/fasm2 "flat assembler 2") assembler;
  - [fastcall_v1](https://github.com/Jesse-6/fastcall_v1 "C style fastcall macro toolkit - for fasm2 assember") macro kit;
   - knowledge on how to do the following:
  
