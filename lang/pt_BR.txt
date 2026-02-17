@@ -1,0 +1,7 @@
+µïOlá Mundo!
+µïSe você puder ler este texto, significa que esta biblioteca multi linguagem (SMLP) está funcionando corretamente!
+µïMuito bem, isto foi demonstração suficiente para esta pequena e poderosa biblioteca.
+O próximo passo depende de você (e de mim).
+Até mais...
+µï
+Número total de strings: %u.µï

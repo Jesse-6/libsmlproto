@@ -1,0 +1,5 @@
+####Bonjour tout le monde !
+####Si vous pouvez lire ceci, cela signifie que cette bibliothèque multilingue (SMLP) fonctionne parfaitement !
+####Voilà qui suffit pour la démonstration de cette petite bibliothèque puissante.
+La suite, c'est à vous (et à moi) de l'utiliser.
+À bientôt !

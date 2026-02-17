@@ -1,0 +1,7 @@
+🥶Hei maailma!
+🥶Jos pystyt lukemaan tämän, se tarkoittaa, että tämä monikielinen kirjasto (SMLP) toimii hyvin!
+🥶No, tämä on riittävä demonstraatio tälle pienelle mutta tehokkaalle kirjastolle.
+Seuraava asia on sinun (ja minun) käsissäsi.
+Nähdään pian...
+🥶
+Merkkijonojen kokonaismäärä: %u.🥶

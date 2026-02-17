@@ -1,0 +1,5 @@
+____¡Hola Mundo!
+____Si puedes leer este texto, significa que esta biblioteca multilingüe (SMLP) está funcionando correctamente.
+____Bueno, ya es suficiente demostración de esta pequeña y potente biblioteca.
+El siguiente paso depende de ti (y de mí).
+Nos vemos pronto...

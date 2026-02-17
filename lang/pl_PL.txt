@@ -1,0 +1,5 @@
+@@@@Witaj świecie!
+@@@@Jeżeli możesz przeczytać ten tekst, oznacza to, że ta wielojęzyczna biblioteka (SMLP) działa poprawnie!
+@@@@No cóż, to już wystarczy zaprezentowania tej maleńkiej, potężnej biblioteki.
+Co dalej z nią, zależy od Ciebie (i mnie).
+Do zobaczenia wkrótce...

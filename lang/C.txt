@@ -1,0 +1,7 @@
+####Hello World!
+####If you can read this, it means that this multi language library (SMLP) is working fine!
+####Well, this is enough demonstration for this tiny, powerful library.
+The next thing with it is up to you (and me).
+See you soon...
+####
+Total string count: %u.####

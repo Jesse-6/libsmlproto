@@ -1,0 +1,5 @@
+(DE)Hallo Welt!
+(DE)Wenn du das hier lesen kannst, funktioniert diese mehrsprachige Bibliothek (SMLP) einwandfrei!
+(DE)Das war eine kurze Demonstration dieser kleinen, aber leistungsstarken Bibliothek.
+Was wir jetzt damit machen, liegt ganz bei dir (und mir).
+Bis bald!
