@@ -39,6 +39,378 @@ section '.text' executable
             .no_change: mov         al, 0
                         ret
                         
+                        
+        ; Converts escape sequences within a given string to its corresponding byte values.
+        ; This function came straight from my 'xecho' application, so it works exactly
+        ; like that command. Here, it allows strings to have escape sequences, if needed.
+        ; It also means that it needs a good optimization pass, because, there, it is just
+        ; a proof of concept, written in a very 32-bit compatible way.
+        ; 
+        ; Parameters:
+        ; rdi = destination buffer
+        ; rsi = source string
+        ; 
+        ; Return: eax = number of escape sequences processed, or -1 if error
+        ; 
+        ; NOTE.1: This function must only be used after successfull language
+        ; initialization by SMLP_InitLanguage()! It will always fail otherwise.
+        ; 
+        ; NOTE.2: Because escape sequences never expand to larger than escaped string,
+        ; and also because this function is a read-modify-write sequence function, 
+        ; source and destination can be the same buffer. It will never overrun.
+        ; 
+        SMLP_ParseEscapedString:
+                        endbr64   ; rdi = destination buffer; rsi = source string
+                        push        rbx
+                        
+                        test        [function_lock], FLAG_INIT_LOCK
+                        jz          .enderr
+                        
+                        lea         rbx, [escapetable-20h]
+                        mov         [escape_count], 0
+                        
+            .nextchar:  lodsb
+                        test        al, al
+                        jz          .endsuccess
+                        cmp         al, '\'
+                        je          .escape
+                        stosb
+                        jmp         .nextchar
+                        
+           .endsuccess: pop         rbx
+                        stosb
+                        mov         eax, [escape_count]
+                        ret
+                        
+            .enderr:    mov         eax, -1
+                        pop         rbx
+                        ret
+                        
+            .escape:    lodsb
+                        test        al, al
+                        js          .ignoreescape
+                        cmp         al, 20h
+                        jb          .ignoreescape
+                        inc         [escape_count]
+                        xlatb
+                        test        al, -1
+                        jns         .store
+                        cmp         al, 254
+                        je          .octal
+                        cmp         al, 253
+                        je          .hex
+                        cmp         al, 252
+                        je          .utf16
+                        cmp         al, 251
+                        je          .utf32
+                        
+         .ignoreescape: mov         ax, [rsi-2]
+                        dec         [escape_count]
+                        stosw
+                        jmp         .nextchar
+                        
+            .store:     stosb
+                        jmp         .nextchar
+                        
+            .octal:     mov         eax, [rsi-1]
+                        mov         ch, 1     ; Invalid octal flag before process
+                        cmp         al, '0'
+                        jb          .endoctal
+                        cmp         al, '7'
+                        ja          .endoctal
+                        xor         ecx, ecx  ; Valid octal + cl = number of octal chars
+                        sub         al, '0'
+                        movzx       edx, al
+                        inc         cl
+                        shr         eax, 8
+                        cmp         al, '0'
+                        jb          .endoctal
+                        cmp         al, '7'
+                        ja          .endoctal
+                        sub         al, '0'
+                        shl         edx, 3
+                        inc         cl
+                        or          dl, al
+                        shr         eax, 8
+                        cmp         al, '0'
+                        jb          .endoctal
+                        cmp         al, '7'
+                        ja          .endoctal
+                        sub         al, '0'
+                        shl         edx, 3
+                        or          dl, al
+                        inc         cl
+                        
+            .endoctal:  test        ch, ch
+                        jnz         .ignoreescape
+                        lea         rsi, [rsi+rcx-1]
+                        mov         al, dl
+                        stosb
+                        jmp         .nextchar
+                        
+            .hex:       mov         dx, [rsi] ; supporting 2 char hex \xNN
+                        mov         ch, 1     ; Set invalid flag before process
+                        cmp         dx, '00'
+                        jb          .endhex
+                        cmp         dx, 'ff'
+                        ja          .endhex
+                        sub         dx, '00'
+                        cmp         dl, 9
+                        jbe         @f
+                        sub         dl, 7
+                        cmp         dl, 0Fh
+                        jbe         @f
+                        sub         dl, 20h
+                        cmp         dl, 0Fh
+                        ja          .endhex
+                        cmp         dl, 0Ah
+                        jb          .endhex
+                        
+                @@      cmp         dh, 9
+                        jbe         @f
+                        sub         dh, 7
+                        cmp         dh, 0Fh
+                        jbe         @f
+                        
+                        sub         dh, 20h
+                        cmp         dh, 0Fh
+                        ja          .endhex
+                        cmp         dh, 0Ah
+                        jb          .endhex
+                        
+                @@      xor         ch, ch    ; Valid hex escape
+                        
+            .endhex:    test        ch, ch
+                        jnz         .ignoreescape
+                        shl         dl, 4
+                        or          dl, dh
+                        mov         al, dl
+                        stosb
+                        add         rsi, 2
+                        jmp         .nextchar
+                        
+            .utf16:     mov         edx, [rsi]
+                        mov         ch, 1     ; set invalid
+                        cmp         edx, '0000'
+                        jb          .endu16
+                        cmp         edx, 'ffff'
+                        ja          .endu16
+                        sub         edx, '0000'
+                        mov         cl, 4
+                        
+                @@@     cmp         dl, 9
+                        jbe         @f3
+                        sub         dl, 7
+                        cmp         dl, 0Ah
+                        jb          .endu16
+                        
+                @@      cmp         dl, 0Fh
+                        jbe         @f2
+                        sub         dl, 20h
+                        cmp         dl, 0Ah
+                        jb          .endu16
+                        
+                @@      cmp         dl, 0Fh
+                        ja          .endu16
+                        test        dl, dl
+                        js          .endu16
+                        
+                @@      ror         edx, 8
+                        dec         cl
+                        jnz         @@b
+                        
+                        bswap       edx
+                        shl         dh, 4
+                        or          dl, dh
+                        ror         edx, 16
+                        shl         dh, 4
+                        or          dl, dh
+                        ror         edx, 16
+                        mov         eax, edx
+                        ror         eax, 8
+                        movzx       edx, dl
+                        or          dh, ah
+                        xor         ch, ch
+                        call        .utf8enc
+                        jc          .ignoreescape
+                        
+            .endu16:    test        ch, ch
+                        jnz         .ignoreescape
+                        
+                        stosd
+                        movzx       ecx, cl
+                        sub         rcx, 4
+                        add         rdi, rcx
+                        add         rsi, 4
+                        jmp         .nextchar
+                        
+            .utf32:     mov         edx, [rsi]
+                        mov         eax, [rsi+4]
+                        mov         ch, 1
+                        
+                        cmp         edx, '0000'
+                        jb          .endu32
+                        cmp         eax, '0000'
+                        jb          .endu32
+                        cmp         edx, 'ffff'
+                        ja          .endu32
+                        cmp         eax, 'ffff'
+                        ja          .endu32
+                        
+                        bswap       eax
+                        bswap       edx
+                        sub         eax, '0000'
+                        sub         edx, '0000'
+                        mov         cl, 4
+                        
+                @@@     cmp         al, 9
+                        jbe         @f3
+                        sub         al, 7
+                        cmp         al, 0Ah
+                        jb          .endu32
+                        
+                @@      cmp         al, 0Fh
+                        jbe         @f2
+                        sub         al, 20h
+                        cmp         al, 0Ah
+                        jb          .endu32
+                        
+                @@      cmp         al, 0Fh
+                        ja          .endu32
+                        test        al, al
+                        js          .endu32
+                        
+                @@      ror         eax, 8
+                        cmp         dl, 9
+                        jbe         @f3
+                        sub         dl, 7
+                        cmp         dl, 0Ah
+                        jb          .endu32
+                        
+                @@      cmp         dl, 0Fh
+                        jbe         @f2
+                        sub         dl, 20h
+                        cmp         dl, 0Ah
+                        jb          .endu32
+                        
+                @@      cmp         dl, 0Fh
+                        ja          .endu32
+                        test        dl, dl
+                        js          .endu32
+                        
+                @@      ror         edx, 8
+                        dec         cl
+                        jnz         @@b
+                        push        rcx
+                        push        rbx
+                        shl         ah, 4
+                        shl         dh, 4
+                        or          al, ah
+                        or          dl, dh
+                        xor         ah, ah
+                        xor         dh, dh
+                        ror         eax, 16
+                        ror         edx, 16
+                        shl         ah, 4
+                        shl         dh, 4
+                        or          ah, al
+                        or          dh, dl
+                        xor         al, al
+                        xor         dl, dl
+                        mov         ebx, eax
+                        mov         ecx, edx
+                        ror         eax, 16
+                        ror         edx, 16
+                        or          ax, bx
+                        or          dx, cx
+                        movzx       eax, ax
+                        shl         edx, 16
+                        or          edx, eax
+                        pop         rbx
+                        pop         rcx
+                        call        .utf8enc
+                        jc          .endu32
+                        xor         ch, ch
+                        
+            .endu32:    test        ch, ch
+                        jnz         .ignoreescape
+                        stosd
+                        movzx       ecx, cl
+                        sub         rcx, 4
+                        add         rdi, rcx
+                        add         rsi, 8
+                        jmp         .nextchar
+                        
+            .utf8enc:   cmp         edx, 7Fh
+                        ja          @f
+                        mov         cl, 1          ; encoding length
+                        mov         eax, edx       ; eax = UTF-8 bytes
+                        clc
+                        ret
+                @@      cmp         edx, 7FFh
+                        ja          @f
+                        mov         cl, 2
+                        mov         eax, 00000C080h
+                        shl         dh, 2
+                        or          ah, dh
+                        mov         dh, dl
+                        and         dx, 0C03Fh
+                        shr         dh, 6
+                        or          ax, dx
+                        xchg        ah, al
+                        clc
+                        ret
+                        
+                @@      cmp         edx, 0FFFFh
+                        ja          @f
+                        mov         cl, 3
+                        mov         eax, 00E08080h
+                        push        rdx
+                        and         dx, 0F3Fh
+                        shl         dh, 2
+                        or          ax, dx
+                        pop         rdx
+                        shr         dl, 6
+                        shr         dh, 4
+                        or          ah, dl
+                        xor         dl, dl
+                        shl         edx, 8
+                        or          eax, edx
+                        rol         eax, 8
+                        bswap       eax
+                        clc
+                        ret
+                        
+                @@      cmp         edx, 10FFFFh   ; maximum UTF-32 code point
+                        ja          .utf8err
+                        mov         cl, 4
+                        mov         eax, 0F0808080h
+                        push        rdx       ; process xyz
+                        and         dx, 0F3Fh
+                        shl         dh, 2
+                        or          ax, dx
+                        mov         edx, [rsp]
+                        shr         dl, 6
+                        or          ah, dl
+                        pop         rdx
+                        shr         edx, 12   ; discard xyz, process uvw
+                        push        rdx
+                        and         dx, 013Fh
+                        shl         dh, 2
+                        ror         eax, 16
+                        or          ax, dx
+                        pop         rdx
+                        shr         dl, 6
+                        or          ah, dl
+                        rol         eax, 16
+                        bswap       eax
+                        clc
+                        ret
+                        
+            .utf8err:   stc
+                        ret
+
+
         ; Loads and parses the strings using current locale in
         ; default mode. To use extended mode, call the above function
         ; before this.
@@ -198,11 +570,6 @@ section '.text' executable
                         test        eax, eax
                         jz          @@f
                         test        [function_lock], FLAG_EXTEND_PATTERN
-                        mov         r9, MIN_FILE_SIZE
-                        mov         r8, MIN_FILE_SIZE_EXT
-                        cmovnz      r9, r8
-                        cmp         [fileprops.size], r9
-                        jae         @@f
                         
                         ; In case file doesn't exist, prepare fallback
                         ; filename and path begining at locale ptr
@@ -281,7 +648,7 @@ section '.text' executable
                         sub         r12, rax
                         jz          @f
                         mov         rsi, [p_file]
-                        lea         rsi, [rsi+r12]
+                        lea         rsi, [rsi+rax]
                         mov         rdx, r12
                         mov         edi, [n_file]
                         jmp         @b

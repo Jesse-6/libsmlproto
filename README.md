@@ -13,10 +13,15 @@ That's it. The whole specification is this two statements!
 Sounds complicated? Well, bundled with this iron-proof library I've provided here, I've added an app called 'tester', which is kind of a Hello World program, but with multi language, by using 'libsmlproto.so.0' functions. I'm too lazy to add all languages, but you can do it and test it for yourself.
 
 ### The library 'libsmlproto.so' and its functions
-There are, up to this "zeroth" version, only 5 functions that get this entire machinery to work fine enough:
+There are, up to this "zeroth" version, only 6 functions that get this entire machinery to work fine enough:
 
 ```
 extern bool SMLP_SetExtendedMode(bool enable);
+```
+
+```
+extern unsigned int SMLP_ParseEscapedString(char* dest,
+                                            char* src);
 ```
 
 ```
@@ -62,6 +67,8 @@ Example:
     # Suffix is '.txt'
     lang/vp_pt_BR.txt # <- resulting filename
 ```
+
+One important concept regarding this library is: there's only 2 possible attributes inside its source text file: it is: **pattern**, or it is **string**. Do not use newline character to "organize" or "arrange" or "align" anything. Because newline, or tab, or whatever char (any hex byte will be considered string if not  match pattern) will be part of your string! If you want to align something there, make newline or tab char part of the pattern. Then, it might work whenever pattern occurs.
 
 I think the names and parameter names are quite self explainable, but if you think you need more details, for now, I have documented every function in (assembly) detail at the source. Also the example application has a good and well commented example of production usage. I'll soon do a proper documentation off source, one day. Maybe... '-'
 (Does this simple thing really need one?)

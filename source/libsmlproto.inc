@@ -43,6 +43,7 @@ struct TIMESPEC
 end struct
 
 public SMLP_SetExtendedMode
+public SMLP_ParseEscapedString
 public SMLP_InitLanguage
 public SMLP_GetIndexedString
 public SMLP_GetStringCount
@@ -65,6 +66,7 @@ section '.bss' writeable
         path            rb MAX_PATH     ; This is actually C MAX_PATH size.
         fileprops       STAT
         str_count       dd ?
+        escape_count    dd ?            ; Used by SMLP_ParseEscapedString()
         locale          rb MAX_LOCALE_LEN   ; parsed locale
         
 section '.data' writeable
@@ -78,4 +80,18 @@ section '.rdata'
         
         langenv         db 'LANG', 0
         fallback_locale dw 'C'
+        
+        escapetable:    db 255, 255, '"', 255, 255, 255, 255, "'" ; 20 - 27
+                        db 255, 255, 255, 255, 255, 255, 255, 255 ; 28 - 2F
+                        db 254, 254, 254, 254, 254, 254, 254, 254 ; 30 - 37
+                        db 255, 255, 255, 255, 255, 255, 255, '?' ; 38 - 3F
+                        db 255, 255, 255, 255, 255, 255, 255, 255 ; 40 - 47
+                        db 255, 255, 255, 255, 255, 255, 255, 255 ; 48 - 4F
+                        db 255, 255, 255, 255, 255, 251, 255, 255 ; 50 - 57
+                        db 255, 255, 255, 255, '\', 255, 255, 255 ; 58 - 5F
+                        db 255, 007, 008, 255, 255, 027, 012, 255 ; 60 - 67
+                        db 255, 255, 255, 255, 255, 255, 010, 255 ; 68 - 6F
+                        db 255, 255, 013, 255, 009, 252, 011, 255 ; 70 - 77
+                        db 253, 255, 255, 255, 255, 255, 255, 255 ; 78 - 7F
+
 
