@@ -1,0 +1,3 @@
+$STRThis is how you use libsmlproto (a.k.a. SMLP library) with C language!
+Example done by Google Gemini and reviewed by Jesse-6.
+$STRThis is just a comment, because this string is never referenced within code.
